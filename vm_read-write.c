@@ -396,7 +396,7 @@ int main(){
     
     unsigned int kslide = get_kernel_slide();
     
-    printf("vm_read-write by @tomitokics!\n\nUse \"help\" for help\n<usage> 0xaddress\n<usage> 0xbytes\nFirst ener where you want to write to!\nAnd what you want to write to!\n\n");
+    printf("vm_read-write by @tomitokics!\n\nUse \"help\" for help\n\n");
     printf("kASLR slide: %#x\n\n",kslide);
     
     
