@@ -56,7 +56,7 @@ and once you comile it you want to sign with ldid.
 #include <mach/mach.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
+
 
 
 enum {
