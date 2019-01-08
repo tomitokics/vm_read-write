@@ -1,4 +1,4 @@
-// vm_read-write by @tomitokics
+//vm_read-write by @tomitokics
 //  Created by Tomi Tokics on 2019. 01. 08.
 
 
@@ -56,7 +56,7 @@ and once you comile it you want to sign with ldid.
 #include <mach/mach.h>
 #include <unistd.h>
 #include <stdlib.h>
-
+#include <string.h>
 
 
 enum {
@@ -222,7 +222,7 @@ void write_test(int task,unsigned int addr,unsigned int where,unsigned int kslid
     }else {
         
         
-        printf("Successfully wrote 0x%x to 0x%x!\n",addr,where);
+        printf("Successfully wrote 0x%x to 0x%x! (with kslide added)\n\n",addr,where + kslide);
         
     }
     
