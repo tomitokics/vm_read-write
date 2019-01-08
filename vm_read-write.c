@@ -381,7 +381,7 @@ void read_test(int task, unsigned int kslide, unsigned int address,size_t size){
     for(int i = 0; i < size; i+=8){
         
         
-        printf("0x%.08x: %.02x%.02x%.02x%.02x %.02x%.02x%.02x%.02x\n\n",address+i,buffer[a],buffer[a+1],buffer[a+2],buffer[a+3],buffer[a+4],buffer[a+5],buffer[a+6],buffer[a+7]);
+        printf("0x%.08x: %.02x%.02x%.02x%.02x %.02x%.02x%.02x%.02x\n\n",address+i,buffer[a],buffer[a+1],buffer[a+2],buffer[a+3],buffer[a+4],buffer[a+5],buffer[a+6],buffer[a+7]);    //thanks @bellis100
         a+=8;
         
     }
