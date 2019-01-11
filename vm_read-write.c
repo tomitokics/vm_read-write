@@ -1,4 +1,4 @@
-//vm_read-write by @tomitokics
+//  vm_read-write by @tomitokics
 //  Created by Tomi Tokics on 2019. 01. 08.
 
 
@@ -263,7 +263,13 @@ void read_test(int task, unsigned int kslide, unsigned int address,size_t size){
 
 int main(){
     
-    
+    if(setuid(0) && getuid()){
+        
+        printf("vm_read-write must run as root!\nTry \"su\" command!\n");
+        exit(0);
+        
+        
+    }
     unsigned int kslide = get_kernel_base();
     
     printf("vm_read-write by @tomitokics!\n\nUse \"help\" for help\n\n");
@@ -291,8 +297,17 @@ int main(){
         unsigned int address = 0;
         int size = 0;
         scanf("%x",&address);
+        if((void*)address == NULL){
+            
+            break;
+        }
         printf("You will read from %#x (with kslide added)\n",address + kslide);
         scanf("%d",&size);
+        if((void*)size == NULL){
+            
+            break;
+            
+        }
         printf("You will read %d bytes from %#x\n",size, address + kslide);
        
         int port = get_task_port();
@@ -306,10 +321,19 @@ int main(){
     unsigned int where = 0;
     unsigned int what = 0;
     scanf("%x",&where);
+    if((void*)where == NULL){
+            
+       break;
+    }
     printf("You will write to %#x (with kslide added!)\n",where + kslide);
     scanf("%x",&what);
+    if((void*)what == NULL){
+            
+       break;
+    }
     printf("You will write 0x%x to 0x%x!\n",what,where + kslide);
    
+    
     
     int task = get_task_port();
     write_test(task,what,where,kslide);
