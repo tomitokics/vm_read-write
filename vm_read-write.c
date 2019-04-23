@@ -7,7 +7,7 @@
 
 
  You can use the program to write to a specific address in kernel!
- works from 7.0 - 9.3.5
+ works on all 32bit device
 
 
 
@@ -50,12 +50,18 @@ and once you comile it you want to sign with ldid.
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
+
+
+
+
 
 
 
 unsigned int get_kernel_slide(int task, int d){
 
-int count = 0;
+static bool count = false;
 
 kern_return_t kr;
 uint32_t slide_byte;
@@ -72,18 +78,19 @@ current_slide = 0x80001000 + kernel_slide;
 
 
 
-kr = vm_read(task,current_slide,4,&buffer,&size);
+kr = vm_read(task,current_slide,4,&buffer,(unsigned int*)&size);
 
 
 if(kr != KERN_SUCCESS){
-if(count == 0){
 printf("[*] reading failed! - %s\n",mach_error_string(kr));
 exit(EXIT_FAILURE);
-}
 }else {
-if(count == 0){
+if(d) {  
+if(count == false){      
 printf("reading successfully started!\n");
+count = true;
 }
+ }
 }
 
 
@@ -149,7 +156,7 @@ if(fixedAddr == 0x00200001) {
 
 }  
 
-    count += 1;
+
 }
 
     
@@ -160,12 +167,41 @@ if(fixedAddr == 0x00200001) {
    
 
 
+int get_hsp4(){
 
+
+static bool call_count = false;
+
+mach_port_t kernel_task = 0;
+
+host_get_special_port(mach_host_self(),HOST_LOCAL_NODE,4,&kernel_task);
+
+if(kernel_task == 0){
+    printf("kernel task = %d\n",kernel_task);
+    printf("No hsp4 patch enabled!\n");
+    exit(EXIT_FAILURE);
+}
+if(kernel_task == -1){
+printf("kernel task = %d\n",kernel_task);
+printf("Failed to get hsp4!\n");
+exit(EXIT_FAILURE);
+}
+
+if(call_count == false) {
+printf("[*] got hsp4!\n");
+call_count = true;
+}
+
+
+
+return kernel_task;
+
+}
 
 
 int get_task_port(){
 
-int task_caller_counter = 0;
+static bool task_caller_counter = false; 
 
 
 
@@ -178,27 +214,30 @@ int task_caller_counter = 0;
     
     
     if(kr != KERN_SUCCESS){
-    if(task_caller_counter == 0){
+    if(task_caller_counter == false){
     printf("%s\n",mach_error_string(kr));
-    printf("[*] failed to get kernel task!\n");
-    exit(EXIT_FAILURE);
+    printf("[*] failed to get kernel task via tfp0!\n");
+    printf("Trying with hsp4...\n");
+    task_caller_counter = true;
     }
     }else {
-    if(task_caller_counter == 0){
+    if(task_caller_counter == false){
     printf("[+] Got task port!\n");
-    
+    task_caller_counter = true;
     }
  }
 
     
 
-    task_caller_counter += 1;
+    
 
 
 
-
+    if(task_port == 0){
+    return get_hsp4();
+    }else {
     return task_port;
-
+    }
 
 
 }
@@ -206,7 +245,9 @@ int task_caller_counter = 0;
 void write_test(int task,unsigned int addr,unsigned int where,unsigned int kslide){
 
     kern_return_t kernel;
-    if (kernel = vm_write(task,(vm_address_t)where + kslide,(vm_address_t)&addr,sizeof(addr))){
+    kernel = vm_write(task,(vm_address_t)where + kslide,(vm_address_t)&addr,sizeof(addr));
+
+    if(kernel != KERN_SUCCESS){
 
         printf("%s\n",mach_error_string(kernel));
 
@@ -227,7 +268,7 @@ void read_test(int task, unsigned int kslide, unsigned int address,size_t size){
     kern_return_t kernel;
     unsigned char buffer[size];
 
-    kernel = vm_read_overwrite(task,(vm_address_t)address + kslide,size,(vm_address_t)&buffer,&size);
+    kernel = vm_read_overwrite(task,(vm_address_t)address + kslide,size,(vm_address_t)&buffer,(unsigned int*)&size);
 
     if(kernel != KERN_SUCCESS){
 
@@ -235,19 +276,32 @@ void read_test(int task, unsigned int kslide, unsigned int address,size_t size){
     }
 
 
+    
+            
     int a = 0;
     for(int i = 0; i < size; i+=8){
 
-
-        printf("0x%.08x: %.02x%.02x%.02x%.02x %.02x%.02x%.02x%.02x\n\n",address+i,buffer[a],buffer[a+1],buffer[a+2],buffer[a+3],buffer[a+4],buffer[a+5],buffer[a+6],buffer[a+7]);  //@bellis1000
+    
+      printf("0x%.08x: %.02x%.02x%.02x%.02x %.02x%.02x%.02x%.02x\n\n",address+i,buffer[a],buffer[a+1],buffer[a+2],buffer[a+3],buffer[a+4],buffer[a+5],buffer[a+6],buffer[a+7]);  //@bellis1000
         a+=8;
-
-    }
-
-
+  }
 
 
 }
+
+
+
+ 
+    
+    
+
+
+
+
+
+
+
+
 
 int main(int argc, char *argv[]){
 
@@ -256,11 +310,11 @@ int main(int argc, char *argv[]){
     if (argc >= 2){
         if (strcmp(argv[1],"-d")==0){
             d = 1; // debug mode enabled
-            printf("\033[32mDebug mode enabled!\033[0m\n");
+            printf("\033[32m[*] Debug mode enabled!\033[0m\n");
         }
     }
-   
 
+   
     if(setuid(0) && getuid()){
 
         printf("vm_read-write must run as root!\nTry \"su\" command!\n");
@@ -274,14 +328,21 @@ int main(int argc, char *argv[]){
     int kernel_task = get_task_port();
     unsigned int kslide = get_kernel_slide(kernel_task,d);
 start:
-    printf("vm_read-write by @tomitokics!\n\nUse \"help\" for help\n\n");
-    printf("kASLR slide: %#x\n\n<< ",kslide);
+    printf("\033[1m\033[30mvm_read-write by @tomitokics!\033[0m\n\nUse \"help\" for help\n\n");
+    printf("kASLR slide: \033[1m\033[30m%#x\033[0m\n\n<< ",kslide);
+   
+    
+    
 
-
-    while(1){
+while(1){
 
     char readOrWrite[32];
+   
     scanf("%s",readOrWrite);
+    
+    
+    
+
     if(!strcmp(readOrWrite, "help")){
 
 
@@ -299,18 +360,18 @@ start:
         unsigned int address = 0;
         int size = 0;
         scanf("%x",&address);
-        if((void*)address == NULL){
+        if(getchar() == 'q'){
 
             break;
         }
         printf("You will read from %#x (with kslide added)\n<< ",address + kslide);
         scanf("%d",&size);
-        if((void*)size == NULL){
+        if(getchar() == 'q'){
 
             break;
 
         }
-        printf("You will read %d bytes from %#x\n",size, address + kslide);
+        printf("You will read %d bytes from %#x\n\n",size, address + kslide);
 
         int port = get_task_port();
         read_test(port,kslide,address,size);
@@ -324,7 +385,7 @@ start:
     unsigned int where = 0;
     unsigned int what = 0;
     scanf("%x",&where);
-    if((void*)where == NULL){
+    if(getchar() == 'q'){
 
         break;
     }
@@ -355,7 +416,7 @@ start:
 _continue:
     printf("You will write to %#x (with kslide added!)\n<< ",where + kslide);
     scanf("%x",&what);
-    if((void*)what == NULL){
+    if(getchar() == 'q'){
 
             break;
     }
@@ -373,6 +434,9 @@ _continue:
         printf("Invalid Command!\n\n<< ");
 
     }
+
+    
+    
     
     }
 
