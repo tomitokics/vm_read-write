@@ -1,9 +1,9 @@
 # vm_read-write
 
-You can read or write kernel memory with this program.
-works from 7.0 - 9.3.5
+You can read or write arbitrary kernel memory with this program.
+- Calculates the kASLR slide without kernel exploit
+- arbitrary kernel read
+- arbitrary kernel write
+works on all 32 bit device.
 
 
-
-
-The program no longer uses the pegasus kernel exploit 
